@@ -32,14 +32,14 @@ noiseCT10 = training_post_10.data;
 noiseCT10=noiseCT10(:,:,143);
 
 %% sample plotting 
-figure;
-imshow(noiseCT_half_slice, [])
-imdisplayrange;
-colorbar6
-title('CT Image with .5x noise ');
-test = cast(noiseCT_half, 'uint8');
-figure;
-[bins, freq]=intensityHistogram(noiseCT_half, 5,1);
+% figure;
+% imshow(noiseCT_half_slice, [])
+% imdisplayrange;
+% colorbar6
+% title('CT Image with .5x noise ');
+% test = cast(noiseCT_half, 'uint8');
+% figure;
+% [bins, freq]=intensityHistogram(noiseCT_half, 5,1);
 
 %% Initializing Brain MRI2 Images 
 % Initializing mammogram files 
@@ -50,6 +50,9 @@ brainMRI4 = load('brainMRI_4.mat'); brainMRI4 = brainMRI4.vol;brainMRI4 = brainM
 brainMRI5 = load('brainMRI_5.mat'); brainMRI5 = brainMRI5.vol;brainMRI5 = brainMRI5(:,:,90);
 brainMRI6 = load('brainMRI_6.mat'); brainMRI6 = brainMRI6.vol;brainMRI6 = brainMRI6(:,:,90);
 
+%% initialize image size 
+
+[H, W] = size(noiseCT1);
 
 %% Step 1 -> edge detection 
     
@@ -69,7 +72,14 @@ gh = imfilter(noiseCT1, h);
 gv = imfilter(noiseCT1, v);
 [G, gdir] = imgradient(gh,gv);
 figure;
+subplot(2,2,1)
 imshow(G, []);
+subplot(2,2,3)
+imshow(gh, [])
+title ('horizontal');
+subplot(2,2,4)
+imshow(gv, []);
+title('verticle');
 figure;
 imhist(noiseCT1);
 
@@ -81,8 +91,7 @@ imhist(noiseCT1);
 %% Step 2: Threshold for edge map test1
 
 %% Ploting CDF  -- works like a charm!!!
-Gtest = cast(G, 'uint8');
-[hist, normhist] = histo_norm(Gtest);
+[hist, normhist] = histo_norm(cast(G, 'uint8'));
 cdf1 = hist_cum(normhist);
 figure;
 plot(cdf1);
@@ -90,14 +99,13 @@ plot(cdf1);
 [r,c] = size(cdf1);
 for i = 1:r
     for j = 1:c
-        if (cdf1(i,j)>=0.1)&&(cdf1(i,j)<=0.101)
+        if (cdf1(i,j)>=0.1)&&(cdf1(i,j)<=0.105)
             T = j;
         end
     end
 end
 
 %% find edge map 
-
 Gth = image_threshold(G,T);
 imshow(Gth,[]);
 
@@ -111,25 +119,46 @@ imshow(Gth,[]);
 % imshow(x, []);
 
 %otsu -- thresholding 
+
+%% Excluding edges found in edge map from original image 
+% %  -- this doesnt make sense because we can't subtract this binary image
+% from the original greyscale image -- does not match 
+% img = G-Gth;
+% subplot(1,2,1)
+% imshow(im2double(G), []);
+% subplot(1,2,2)
+% imshow(img, []);
 %% Step 3 Laplacian 
 % multiply Gth with laplacian to suppress image stuctures 
 kernel = [1 -2 1; -2 4 -1; 1 -2 1];
-Gth_lap = conv2(Gth, kernel);
-imshow(Gth_lap, []);
+img_lap = imfilter(Gth, kernel);
+imshow(img_lap, []);
+
+% kernel = [1 -2 1; -2 4 -1; 1 -2 1];
+% Gth_lap = conv2(Gth, kernel);
+% imshow(Gth_lap, []);
 
 %% Step 4 Calculating standard deviation
-std_noiseCT1 = sqrt(pi/2)*(1/(6*(512-2)*(512-2))).*sum(abs(Gth_lap), [1 2]);
+std_noiseCT1 = sqrt(pi/2)*(1/(6*(H-2)*(W-2))).*sum(abs(img_lap), [1 2]);
 
 
 %% test -- adding noise to noiseCT1
-% making a noise image og standard deviation of 10 gray levels 
-noiseOnlyImage = 10 * randn(512, 512);
+% ultimate goal is to determine which image has the most noise 
+
+
+
+% making a noise image of standard deviation of 10 gray level
+% we can range it from 0-50
+noiseOnlyImage = 1* randn(H, W); % we added 1 std 
 % adding noise image to gray scale image 
 noiseAddedImage = double(noiseCT1)+noiseOnlyImage;
-
+% figure;
+% imshow(noiseAddedImage, []);
+% figure;
+% imshow(noiseOnlyImage, []);
 %compute std of noisy image
 [std_addednoise_CT1, Ttest] = noise_estimation(noiseAddedImage);
-
+% Ttest = noise_estimation(noiseAddedImage);
 
 estimation_ratio = std_noiseCT1/std_addednoise_CT1;
 
