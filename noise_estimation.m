@@ -1,4 +1,4 @@
-function [std,T] = noise_estimation(img_in)
+function [std] = noise_estimation(img_in)
 
 % Initialize size of image
 [H, W] = size(img_in);
@@ -11,24 +11,25 @@ gv = imfilter(img_in, v);
 [G, gdir] = imgradient(gh,gv);
 
 %Step 2: edge map
-% computing cdf histo
-[hist, normhist] = histo_norm(cast(G, 'uint8'));
-cdf = hist_cum(normhist);
-figure;
-plot(cdf);
+% % computing cdf histo
+% [hist, normhist] = histo_norm(cast(G, 'uint8'));
+% cdf = hist_cum(normhist);
+% figure;
+% plot(cdf);
+% 
+% %determining threshold value 
+% [r,c] = size(cdf);
+% for i = 1:r
+%     for j = 1:c
+%         if (cdf(i,j)>=0.1)&&(cdf(i,j)<=0.12)
+%             T = j;
+%         else 
+%             disp('error');
+%         end
+%     end
+% end
 
-%determining threshold value 
-[r,c] = size(cdf);
-for i = 1:r
-    for j = 1:c
-        if (cdf(i,j)>=0.1)&&(cdf(i,j)<=0.105)
-            T = j;
-        else 
-            disp('error');
-        end
-    end
-end
-
+T =auto_thresholding(G, 1);
 %computing edge map
 Gth = image_threshold(G,T);
 imshow(Gth,[]);

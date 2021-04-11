@@ -105,8 +105,10 @@ for i = 1:r
     end
 end
 
+%% Try autothreshold 
+Ttest = auto_thresholding(G, 1);
 %% find edge map 
-Gth = image_threshold(G,T);
+Gth = image_threshold(G,Ttest);
 imshow(Gth,[]);
 
 %% Step 2 Threshold for edge map 
@@ -145,21 +147,41 @@ std_noiseCT1 = sqrt(pi/2)*(1/(6*(H-2)*(W-2))).*sum(abs(img_lap), [1 2]);
 %% test -- adding noise to noiseCT1
 % ultimate goal is to determine which image has the most noise 
 
+%% Performance in estimating the standard deviation 
+% add noise to CT1 and find estimation ratio
+std_CT1 = noise_estimation(noiseCT1); % assume this to be base image (i.e no added noise)
+noise1= noiseCT1 + (1* randn(512, 512)); % adding noise with std 1
+noise2= noiseCT1 + (5* randn(512, 512)); % adding noise with std 2
+noise3= noiseCT1 + (10* randn(512, 512)); % adding noise with std 3
+q1 = (1* randn(512, 512));
+q2 = (5* randn(512, 512));
+q3 = (10* randn(512, 512));
+std_noise1a = std2(q1); % which is basically 1 
+std_noise2a = std2(q2);
+std_noise3a = std2(q3);
+std_noise1e = noise_estimation(noise1);
+std_noise2e = noise_estimation(noise2);
+std_noise3e = noise_estimation(noise3);
+
+%estimation ratio -- sigma estimated/simga added
+e1 = std_noise1e/std_noise1a;
+e2 = std_noise2e/std_noise2a;
+e3 = std_noise3e/std_noise3a;
+
+% % making a noise image of standard deviation of 10 gray level
+% % we can range it from 0-50
+% noiseOnlyImage = 1* randn(H, W); % we added 1 std 
+% % adding noise image to gray scale image 
+% noiseAddedImage = double(noiseCT1)+noiseOnlyImage;
+% % figure;
+% % imshow(noiseAddedImage, []);
+% % figure;
+% % imshow(noiseOnlyImage, []);
+% %compute std of noisy image
+% [std_addednoise_CT1, Ttest] = noise_estimation(noiseAddedImage);
+% % Ttest = noise_estimation(noiseAddedImage);
+% 
+% estimation_ratio = std_noiseCT1/std_addednoise_CT1;
 
 
-% making a noise image of standard deviation of 10 gray level
-% we can range it from 0-50
-noiseOnlyImage = 1* randn(H, W); % we added 1 std 
-% adding noise image to gray scale image 
-noiseAddedImage = double(noiseCT1)+noiseOnlyImage;
-% figure;
-% imshow(noiseAddedImage, []);
-% figure;
-% imshow(noiseOnlyImage, []);
-%compute std of noisy image
-[std_addednoise_CT1, Ttest] = noise_estimation(noiseAddedImage);
-% Ttest = noise_estimation(noiseAddedImage);
-
-estimation_ratio = std_noiseCT1/std_addednoise_CT1;
-
-
+%% Contrast Quality Metrics 
