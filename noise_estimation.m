@@ -21,7 +21,7 @@ plot(cdf);
 [r,c] = size(cdf);
 for i = 1:r
     for j = 1:c
-        if (cdf(i,j)>=0.9)&&(cdf(i,j)<=0.12)
+        if (cdf(i,j)>=0.08)&&(cdf(i,j)<=0.13)
             T = j;
         else 
             disp('error');
@@ -31,6 +31,7 @@ end
 
 %T =auto_thresholding(G, 1);
 %computing edge map
+
 Gth = image_threshold(G,T);
 imshow(Gth,[]);
 
@@ -40,6 +41,5 @@ Gth_lap = imfilter(Gth, kernel);
 imshow(Gth_lap, []);
 
 %Step 4: Compute std of noise
-%std = [sqrt(pi/2)*(1/(6*(W-2)*(H-2))).*mean(abs(Gth_lap), [1 2])]
-std = sqrt(pi/2)*(1/(6*(W-2)*(H-2))).*sum(abs(Gth_lap), [1 2]);
+std = sqrt(pi/2)*(1/(6*(W-2)*(H-2))).*sum(abs(Gth_lap),'all');
 end 
