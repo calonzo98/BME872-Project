@@ -24,12 +24,13 @@ clear all
 [training_post_half, infoCThalf] = imageRead('C:\Users\Claudia\Documents\MATLAB\BME872\Lab1\Lab1-LungCT\noise_0.5x_post.mhd', '.mhd');
 noiseCT_half = training_post_half.data;
 noiseCT_half=noiseCT_half(:,:,143);
-[training_post_1, infoCT1] = imageRead('C:\Users\Claudia\Documents\MATLAB\BME872\Lab1\Lab1-LungCT\noise_0.5x_post.mhd', '.mhd');
+[training_post_1, infoCT1] = imageRead('C:\Users\Claudia\Documents\MATLAB\BME872\Lab1\Lab1-LungCT\training_post.mhd', '.mhd');
 noiseCT1 = training_post_1.data;
 noiseCT1=double(noiseCT1(:,:,143));
-[training_post_10, infoCT10] = imageRead('C:\Users\Claudia\Documents\MATLAB\BME872\Lab1\Lab1-LungCT\noise_0.5x_post.mhd', '.mhd');
+[training_post_10, infoCT10] = imageRead('C:\Users\Claudia\Documents\MATLAB\BME872\Lab1\Lab1-LungCT\noise_10x_post.mhd', '.mhd');
 noiseCT10 = training_post_10.data;
 noiseCT10=noiseCT10(:,:,143);
+[mask, info_mask] = imageRead('C:\Users\Claudia\Documents\MATLAB\BME872\Lab1\Lab1-LungCT\training_mask.mhd', '.mhd');
 
 %% sample plotting 
 % figure;
@@ -68,8 +69,8 @@ brainMRI6 = load('brainMRI_6.mat'); brainMRI6 = brainMRI6.vol;brainMRI6 = brainM
 %% Step 1 edge detection different way -> using fspecial 
 h = fspecial('sobel');
 v = rot90(fspecial('sobel'));
-gh = imfilter(noiseCT1, h);
-gv = imfilter(noiseCT1, v);
+gh = imfilter(noise3, h);
+gv = imfilter(noise3, v);
 [G, gdir] = imgradient(gh,gv);
 figure;
 subplot(2,2,1)
@@ -81,7 +82,7 @@ subplot(2,2,4)
 imshow(gv, []);
 title('verticle');
 figure;
-imhist(noiseCT1);
+imhist(brainMRI1);
 
 %% Step 2: Threshold for edge map test1
 % [counts, bins] = imhist(brainMRI1);
@@ -107,9 +108,22 @@ end
 
 %% Try autothreshold 
 Ttest = auto_thresholding(G, 1);
+
+%% otsu method 
+t = graythresh(noise3);
+bw = imbinarize(noise3,t);
+imshow(bw);
 %% find edge map 
-Gth = image_threshold(G,Ttest);
+Gth = noiseCT1>t;
+Gth = double(Gth);
 imshow(Gth,[]);
+
+%%
+G_edge = edge(G,'sobel', Ttest);
+subplot(1,2,1)
+imshow(G_edge, []);
+subplot(1,2,2)
+imshow(G, []);
 
 %% Step 2 Threshold for edge map 
 % figure;
@@ -133,7 +147,7 @@ imshow(Gth,[]);
 %% Step 3 Laplacian 
 % multiply Gth with laplacian to suppress image stuctures 
 kernel = [1 -2 1; -2 4 -1; 1 -2 1];
-img_lap = imfilter(Gth, kernel);
+img_lap = double(imfilter(G_edge, kernel));
 imshow(img_lap, []);
 
 % kernel = [1 -2 1; -2 4 -1; 1 -2 1];
@@ -141,15 +155,19 @@ imshow(img_lap, []);
 % imshow(Gth_lap, []);
 
 %% Step 4 Calculating standard deviation
-std_noiseCT1 = sqrt(pi/2)*(1/(6*(H-2)*(W-2))).*sum(abs(img_lap), [1 2]);
+std_test6 = sqrt(pi/2)*(1/(6*(H-2)*(W-2))).*sum(abs(img_lap), [1 2]);
+
+%std_noiseCT1 = sqrt(pi/2)*(1/(6*(H-2)*(W-2))).*mean(abs(img_lap(:)));
+
+%% Plotting standard deviation 
 
 
-%% test -- adding noise to noiseCT1
-% ultimate goal is to determine which image has the most noise 
 
 %% Performance in estimating the standard deviation 
 % add noise to CT1 and find estimation ratio
 std_CT1 = noise_estimation(noiseCT1); % assume this to be base image (i.e no added noise)
+std_CT10 = noise_estimation(noiseCT10); % assume this to be base image (i.e no added noise)
+std_CThalf = noise_estimation(noiseCT_half);
 noise1= noiseCT1 + (1* randn(512, 512)); % adding noise with std 1
 noise2= noiseCT1 + (5* randn(512, 512)); % adding noise with std 2
 noise3= noiseCT1 + (10* randn(512, 512)); % adding noise with std 3
@@ -168,6 +186,21 @@ e1 = std_noise1e/std_noise1a;
 e2 = std_noise2e/std_noise2a;
 e3 = std_noise3e/std_noise3a;
 
+
+%% brainmri noise metrics 
+std_brain1 = noise_estimation(brainMRI1);
+std_brain2 = noise_estimation(brainMRI2);
+std_brain3 = noise_estimation(brainMRI3);
+std_brain4 = noise_estimation(brainMRI4);
+std_brain5 = noise_estimation(brainMRI5);
+std_brain6 = noise_estimation(brainMRI6);
+
+x = [std_brain1, std_brain2, std_brain3, std_brain4, std_brain5, std_brain6];
+y = (1:6);
+
+scatter(y,x);
+
+
 % % making a noise image of standard deviation of 10 gray level
 % % we can range it from 0-50
 % noiseOnlyImage = 1* randn(H, W); % we added 1 std 
@@ -185,3 +218,48 @@ e3 = std_noise3e/std_noise3a;
 
 
 %% Contrast Quality Metrics 
+
+%% Step 1 Find local measure names edge-based criterion (ECC)
+
+ECC_CT1 = ECC(brainMRI1);
+ECC_CT2 = ECC(brainMRI6);
+
+ECC_XY = 2/(1+(1-ECC_CT2)/(1-ECC_CT1));
+
+%% Step 2 Find Entropy 
+% MaskedCT =  apply_mask(training_post_1, mask, 'ImageType');
+% mask = MaskedCT(:,:,143);
+entropy1 = entropy(brainMRI1);
+entropy2 = entropy(brainMRI6);
+
+H_XY = 2/(1+(entropy1/entropy2));
+
+
+%% Step 3 Correlation coeff
+
+imgcorr = corrcoef(brainMRI1(:), brainMRI6(:));
+
+R_XY = imgcorr(1,2);
+
+%% Step 4 Ambsolute Mean Brightness Error
+
+AMBE_XY = (2.*(mean(brainMRI1(:))).*(mean(brainMRI2(:))))/((mean(brainMRI1(:)).^2)+(mean(brainMRI6(:)).^2));
+
+%% Step 5 Linear Combination 
+
+% Creating a function handle of the linear combination 
+fun = @(A) A(1)*ECC_XY + A(2)*H_XY + A(3)*R_XY + A(4)*AMBE_XY;
+f = @(A) A*4;
+nvars = 4;
+x = particleswarm(fun, nvars,0, 1)
+
+
+CCIQ = (ECC_XY+H_XY+R_XY+AMBE_XY)/4;
+
+%% Testing 
+yref = ECC_XY + H_XY + R_XY + AMBE_XY;
+M = [ECC_XY(:), H_XY(:), R_XY(:), AMBE_XY(:)];
+b = yref(:);
+ABCD = M\b;
+A = ABCD(1); B = ABCD(2); C = ABCD(3); D = ABCD(4);
+
