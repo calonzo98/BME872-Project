@@ -1,3 +1,25 @@
+% The function [std] = noise_estimation(img_in) estimates noise of an imag using laplacian operator and adaptive
+% edge detection. The function returns the standard deviatio representing
+% noise estimations.
+%
+%
+%By using an adaptive edge detector, noise can be estimated for a large
+%range of noise levels including highly textured images. 
+%
+%A sobel operator is used for edge detection. To decide the edge map, the
+%threshold value is selected when the accumulated histogram of the gradient
+%magnitude reaches 10% of the entire image. The threshold values G will be
+%different for each image. Therefore, we can say that it is an "adaptive"
+%edge detection. The edge pixels below the threshold are elliminated, and
+%the rest of the image is used for the remainder of the computation. The
+%edge detector exclude image details from ontributing to the noise
+%variance. 
+%
+%The next step is to suppress the image structures by a laplacian oeprator
+%
+%Lastly, the standard devition of the noise is computed 
+%
+
 function [std] = noise_estimation(img_in)
 
 % Initialize size of image

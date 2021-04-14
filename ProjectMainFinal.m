@@ -102,7 +102,7 @@ ylabel('Standard Deviation');
 title('Noise Quality Metric of LungCT Images');
 axis tight;
 hold off;
-%% Image Quality Metric 2: Contrast
+%% Image Quality Metric 2: Contrast (CCIQ - Contrast-changed image quality)
 
 %% LungCT 
 CCIQCT1 = contrast_estimation(noiseCT_half, noiseCT1);
@@ -115,7 +115,7 @@ figure;
 scatter(x3(1),y3(1));
 hold on;
 scatter(x3(2),y3(2));
-legend('CT 1 & 0.5', 'CT 0.5 & 1', 'CT 0.5 & 10');
+legend('CT 1 & 0.5', 'CT 0.5 & 10');
 xlabel('Lung CT Image');
 ylabel('CCIQ');
 title('Contrast Quality Metric of Brain MRI Images');
