@@ -140,24 +140,6 @@ scatter(y(6),x(6));
 legend('brainMRI1', 'brainMRI2', 'brainMRI3', 'brainMRI4', 'brainMRI5', 'brainMRI6');
 hold off;
 
-%% ct troubleshoot
-% noise1= noiseCT1 + (1* randn(512, 512)); % adding noise with std 1
-% noise2= noiseCT1 + (5* randn(512, 512)); % adding noise with std 2
-% noise3= noiseCT1 + (10* randn(512, 512)); % adding noise with std 3
-% q1 = (1* randn(512, 512));
-% q2 = (5* randn(512, 512));
-% q3 = (10* randn(512, 512));
-% std_noise1a = std2(q1); % which is basically 1 
-% std_noise2a = std2(q2);
-% std_noise3a = std2(q3);
-% std_noise1e = noise_estimation(noise1);
-% std_noise2e = noise_estimation(noise2);
-% std_noise3e = noise_estimation(noise3);
-
-% %estimation ratio -- sigma estimated/simga added
-% e1 = std_noise1e/std_noise1a;
-% e2 = std_noise2e/std_noise2a;
-% e3 = std_noise3e/std_noise3a;
 
 %% Contrast Quality Metric 
 
@@ -198,15 +180,23 @@ prob = optimproblem;
 prob.Objective = a1*ECC_XY + a2*H_XY + a3*R_XY + a4*AMBE_XY;
 prob.Constraints.cons1 = a1+a2+a3+a4==1;
 prob.Constraints.cons2 = a1>=0;
-prob.Constraints.cons3 = a2>=0;
-prob.Constraints.cons4 = a3>=0;
-prob.Constraints.cons5 = a4>=0;
+prob.Constraints.cons3 = a1<=1;
+prob.Constraints.cons4 = a2>=0;
+prob.Constraints.cons5 = a2<=1;
+prob.Constraints.cons6 = a3>=0;
+prob.Constraints.cons7 = a3<=1;
+prob.Constraints.cons8 = a4>=0;
+prob.Constraints.cons9 = a4<=1;
+
 sol = solve(prob, 'Solver', 'intlinprog')
+alpha = vertcat(sol.vector);
+%% 
+CCIQ = (sol.a1*ECC_XY) + (sol.a2*H_XY) + (sol.a3*R_XY) + (sol.a4*AMBE_XY);
  
 %% 
-CCIQ = [ECC_XY H_XY R_XY AMBE_XY];
-% finding alpha 
-alpha = linprog(-CCIQ.',[],[],[1 1 1 1], 1, [0 0 0 0],[1 1 1 1]);
+% CCIQ = [ECC_XY H_XY R_XY AMBE_XY];
+% % finding alpha 
+% alpha = linprog(-CCIQ.',[],[],[1 1 1 1], 1, [0 0 0 0],[1 1 1 1]);
 %% Testing 
 yref = ECC_XY + H_XY + R_XY + AMBE_XY;
 M = [ECC_XY(:), H_XY(:), R_XY(:), AMBE_XY(:)];
@@ -228,9 +218,12 @@ imshow(J, []);
 subplot(1,2,2)
 imshow(brainMRI1, []);
 
-CCIQ1 = contrast_estimation(brainMRI1, J); % 1.0799 that means 2 is higher contrast than 1
-CCIQ2 = contrast_estimation(brainMRI1, brainMRI3); % 
-CCIQ3 = contrast_estimation(brainMRI3, brainMRI4);
-CCIQ5 = contrast_estimation(brainMRI4, brainMRI5);
-CCIQ6 = contrast_estimation(brainMRI5, brainMRI6);
+%%
 
+CCIQ1 = contrast_estimation(brainMRI1, brainMRI1); % 1.0799 that means 2 is higher contrast than 1
+CCIQ2 = contrast_estimation(brainMRI1, brainMRI3); % 
+CCIQ3 = contrast_estimation(brainMRI1, brainMRI4);
+CCIQ5 = contrast_estimation(brainMRI1, brainMRI5);
+CCIQ6 = contrast_estimation(brainMRI1, brainMRI6);
+
+montage({cast(brainMRI1, 'uint8'), cast(brainMRI2, 'uint8'), cast(brainMRI3, 'uint8'), cast(brainMRI4, 'uint8'), cast(brainMRI5, 'uint8'), cast(brainMRI6, 'uint8')});
